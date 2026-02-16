@@ -52,7 +52,7 @@ export class DynamoDBHelper {
     this.client = client ?? createClientFromEnv();
   }
 
-  private readonly client: DynamoDBDocumentClient;
+  readonly client: DynamoDBDocumentClient;
   private readonly tableName: string;
   emptyKey = 'META';
 
