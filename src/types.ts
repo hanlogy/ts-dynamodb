@@ -1,8 +1,10 @@
+import { NativeAttributeValue } from '@aws-sdk/lib-dynamodb';
+
 export type TypedRecord<T> = Record<string, T>;
 export type AnyRecord = TypedRecord<any>;
 
 export type PlaceholderNames = Record<`#${string}`, string>;
-export type PlaceholderValues = Record<`:${string}`, any>;
+export type PlaceholderValues = Record<`:${string}`, NativeAttributeValue>;
 export type AttributeValues = AnyRecord;
 export type ExclusiveStartKey = AnyRecord;
 export type Keys = TypedRecord<string | number>;
@@ -107,7 +109,7 @@ export interface BatchWriteInput {
 }
 
 export interface ParsedCondition {
-  readonly expression?: string;
+  readonly expression?: string | undefined;
   readonly names: PlaceholderNames;
   readonly values: PlaceholderValues;
 }
