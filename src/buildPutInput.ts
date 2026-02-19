@@ -1,15 +1,16 @@
 import { isEmpty } from '@hanlogy/ts-lib';
 import { buildConditionExpression } from './buildConditionExpression';
-import type { Condition, PutConfig, PutInput, AnyRecord } from './types';
+import type { Condition, PutConfig, PutInput, UnknownRecord } from './types';
 
-export function buildPutInput<T extends AnyRecord = AnyRecord>({
+export function buildPutInput<ItemT extends object = UnknownRecord>({
   tableName,
+  returnValues,
   keyNames,
-  attributes,
+  item,
   conditions,
   timestamp,
   preventOverwrite,
-}: PutConfig<T> & { tableName: string }): PutInput {
+}: PutConfig<ItemT> & { tableName: string }): PutInput<ItemT> {
   const resolvedConditions: Condition[] = [];
 
   if (preventOverwrite !== false) {
@@ -32,19 +33,20 @@ export function buildPutInput<T extends AnyRecord = AnyRecord>({
 
   return {
     TableName: tableName,
-    Item: resolveAttributes(attributes, timestamp),
+    ...(returnValues && { ReturnValues: returnValues }),
+    Item: resolveAttributes(item, timestamp),
     ...(!isEmpty(names) && { ExpressionAttributeNames: names }),
     ...(!isEmpty(values) && { ExpressionAttributeValues: values }),
     ...(expression && { ConditionExpression: expression }),
   };
 }
 
-function resolveAttributes<T extends object>(
-  attributes: T,
+function resolveAttributes<ItemT extends object>(
+  item: ItemT,
   timestamp: boolean | undefined,
-): T & { createdAt?: string; updatedAt?: string } {
+): ItemT & { createdAt?: string; updatedAt?: string } {
   if (timestamp === false) {
-    return { ...attributes };
+    return { ...item };
   }
 
   const now = new Date().toISOString();
@@ -52,15 +54,15 @@ function resolveAttributes<T extends object>(
   let existingCreatedAt: unknown;
   let existingUpdatedAt: unknown;
 
-  if ('createdAt' in attributes) {
-    existingCreatedAt = attributes.createdAt;
+  if ('createdAt' in item) {
+    existingCreatedAt = item.createdAt;
   }
-  if ('updatedAt' in attributes) {
-    existingUpdatedAt = attributes.updatedAt;
+  if ('updatedAt' in item) {
+    existingUpdatedAt = item.updatedAt;
   }
 
   return {
-    ...attributes,
+    ...item,
     createdAt: typeof existingCreatedAt === 'string' ? existingCreatedAt : now,
     updatedAt: typeof existingUpdatedAt === 'string' ? existingUpdatedAt : now,
   };

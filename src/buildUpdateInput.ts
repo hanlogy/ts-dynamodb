@@ -5,31 +5,34 @@ import type {
   PlaceholderNames,
   PlaceholderValues,
   SingleTableKeys,
-  AnyRecord,
   UpdateConfig,
   UpdateInput,
+  UnknownRecord,
 } from './types';
 import { buildConditionExpression } from './buildConditionExpression';
 import { buildSetUpdateExpression } from './buildSetUpdateExpression';
 
 // NOTE: The return value is partially `UpdateCommandInput`.
 export function buildUpdateInput<
-  T extends AnyRecord = AnyRecord,
-  K extends Keys = SingleTableKeys,
+  SetAttributesT extends object = UnknownRecord,
+  KeysT extends Keys = SingleTableKeys,
 >({
   tableName,
+  returnValues,
   keys,
   setAttributes,
   removeAttributes,
   upsert,
   conditions,
   timestamp,
-}: UpdateConfig<T, K> & { tableName: string }): UpdateInput<K> {
+}: UpdateConfig<SetAttributesT, KeysT> & {
+  tableName: string;
+}): UpdateInput<KeysT> {
   const expressionParts: string[] = [];
   const placeholderNames: PlaceholderNames = {};
   const placeholderValues: PlaceholderValues = {};
 
-  const setAttributesResolved = { ...setAttributes };
+  const setAttributesResolved: UnknownRecord = { ...setAttributes };
 
   if (timestamp !== false && setAttributesResolved.updatedAt === undefined) {
     setAttributesResolved.updatedAt = new Date().toISOString();
@@ -90,6 +93,7 @@ export function buildUpdateInput<
     TableName: tableName,
     Key: keys,
     UpdateExpression: expressionParts.join(' '),
+    ...(returnValues && { ReturnValues: returnValues }),
     ...(conditionExpression && { ConditionExpression: conditionExpression }),
     ...(!isEmpty(expressionAttributeNames) && {
       ExpressionAttributeNames: expressionAttributeNames,

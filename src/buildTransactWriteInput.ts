@@ -3,35 +3,38 @@ import { buildPutInput } from './buildPutInput';
 import { buildUpdateInput } from './buildUpdateInput';
 import { buildDeleteInput } from './buildDeleteInput';
 import type {
-  AnyRecord,
   Keys,
   SingleTableKeys,
   TransactWriteConfig,
+  UnknownRecord,
 } from './types';
 
 export function buildTransactWriteInput<
-  PT extends AnyRecord = AnyRecord,
-  UT extends AnyRecord = AnyRecord,
-  UK extends Keys = SingleTableKeys,
-  DK extends Keys = SingleTableKeys,
+  PutItemT extends object = UnknownRecord,
+  SetAttributesT extends object = UnknownRecord,
+  UpdateKeysT extends Keys = SingleTableKeys,
+  DeleteKeysT extends Keys = SingleTableKeys,
 >({
   tableName,
   put: putItems = [],
   update: updateItems = [],
   delete: deleteItems = [],
-}: TransactWriteConfig<PT, UT, UK, DK> & {
+}: TransactWriteConfig<PutItemT, SetAttributesT, UpdateKeysT, DeleteKeysT> & {
   tableName: string;
 }): TransactWriteCommandInput {
   return {
     TransactItems: [
       ...putItems.map((e) => ({
-        Put: buildPutInput<PT>({ tableName, ...e }),
+        Put: buildPutInput<PutItemT>({ tableName, ...e }),
       })),
       ...updateItems.map((e) => ({
-        Update: buildUpdateInput<UT, UK>({ tableName, ...e }),
+        Update: buildUpdateInput<SetAttributesT, UpdateKeysT>({
+          tableName,
+          ...e,
+        }),
       })),
       ...deleteItems.map((e) => ({
-        Delete: buildDeleteInput<DK>({ tableName, ...e }),
+        Delete: buildDeleteInput<DeleteKeysT>({ tableName, ...e }),
       })),
     ],
   };

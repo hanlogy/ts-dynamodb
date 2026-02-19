@@ -1,12 +1,17 @@
-export type TypedRecord<T> = Record<string, T>;
-export type AnyRecord = TypedRecord<any>;
+import { ReturnValue } from '@aws-sdk/client-dynamodb';
+import {
+  BatchWriteCommandInput,
+  NativeAttributeValue,
+} from '@aws-sdk/lib-dynamodb';
 
+export type StringKeyRecord<T> = Record<string, T>;
+export type UnknownRecord = StringKeyRecord<unknown>;
 export type PlaceholderNames = Record<`#${string}`, string>;
-export type PlaceholderValues = Record<`:${string}`, any>;
-export type AttributeValues = AnyRecord;
-export type ExclusiveStartKey = AnyRecord;
-export type Keys = TypedRecord<string | number>;
-export type SingleTableKeys = { pk: string; sk: string };
+export type PlaceholderValues = Record<`:${string}`, NativeAttributeValue>;
+export type AttributeValue = NativeAttributeValue;
+export type AttributeValueRecord = StringKeyRecord<NativeAttributeValue>;
+export type Keys = StringKeyRecord<string | number>;
+export type SingleTableKeys = Record<'pk' | 'sk', string>;
 
 // Types for condition
 type LogicalOperator = 'AND' | 'OR';
@@ -16,7 +21,7 @@ type ComparisonOperator = '=' | '<>' | '<' | '<=' | '>' | '>=';
 
 interface BaseCondition {
   /** How this condition links to the previous one */
-  readonly link?: LogicalOperator;
+  readonly link?: LogicalOperator | undefined;
 }
 
 interface ExistsCondition extends BaseCondition {
@@ -32,7 +37,7 @@ interface BeginsWithCondition extends BaseCondition {
 
 interface ComparisonCondition extends BaseCondition {
   readonly attribute: string;
-  readonly operator?: ComparisonOperator;
+  readonly operator?: ComparisonOperator | undefined;
   readonly value: string | number | boolean;
 }
 
@@ -47,109 +52,42 @@ export type Condition =
   | GroupCondition;
 export type MaybeConditions = Condition | Condition[] | null;
 
-export interface DeleteConfig<K extends Keys = SingleTableKeys> {
-  readonly keys: K;
-  readonly conditions?: MaybeConditions;
+// Put
+export type PutReturnValue = Extract<ReturnValue, 'ALL_OLD' | 'NONE'>;
+export interface PutConfig<ItemT extends object = UnknownRecord> {
+  readonly item: ItemT;
+  readonly keyNames: Extract<keyof ItemT, string>[];
+  readonly conditions?: MaybeConditions | undefined;
+  readonly timestamp?: boolean | undefined;
+  readonly preventOverwrite?: boolean | undefined;
+  readonly returnValues?: PutReturnValue;
 }
 
-export interface PutConfig<T extends AnyRecord = AnyRecord> {
-  readonly attributes: T;
-  readonly keyNames: Extract<keyof T, string>[];
-  readonly conditions?: MaybeConditions;
-  readonly timestamp?: boolean;
-  readonly preventOverwrite?: boolean;
-}
-
-export interface QueryConfig {
-  readonly indexName?: string;
-  readonly keyConditions?: MaybeConditions;
-  readonly projections?: string[];
-  readonly limit?: number;
-  readonly exclusiveStartKey?: ExclusiveStartKey;
-  readonly descending?: boolean;
-}
-
-export interface TransactWriteConfig<
-  PT extends AnyRecord = AnyRecord,
-  UT extends AnyRecord = AnyRecord,
-  UK extends Keys = SingleTableKeys,
-  DK extends Keys = SingleTableKeys,
-> {
-  readonly put?: PutConfig<PT>[];
-  readonly update?: UpdateConfig<UT, UK>[];
-  readonly delete?: DeleteConfig<DK>[];
-}
-
-export interface BatchWriteConfig {
-  readonly put?: AnyRecord[];
-  readonly delete?: AnyRecord[];
-}
-
-export interface UpdateConfig<
-  T extends AnyRecord = AnyRecord,
-  K extends Keys = SingleTableKeys,
-> {
-  readonly keys: K;
-  readonly setAttributes?: T;
-  readonly removeAttributes?: readonly string[];
-  readonly upsert?: boolean;
-  readonly conditions?: MaybeConditions;
-  readonly timestamp?: boolean;
-}
-
-export interface BatchWriteInput {
-  readonly RequestItems: TypedRecord<
-    (
-      | { PutRequest: { Item: AnyRecord } }
-      | { DeleteRequest: { Key: AnyRecord } }
-    )[]
-  >;
-}
-
-export interface ParsedCondition {
-  readonly expression?: string;
-  readonly names: PlaceholderNames;
-  readonly values: PlaceholderValues;
-}
-
-export interface DeleteInput<K extends Keys = SingleTableKeys> {
+export interface PutInput<ItemT extends object = UnknownRecord> {
   readonly TableName: string;
-  readonly Key: K;
-  readonly ExpressionAttributeNames: PlaceholderNames;
-  readonly ExpressionAttributeValues: PlaceholderValues;
-  readonly ConditionExpression?: string | undefined;
-}
-
-export interface QueryInput {
-  readonly TableName: string;
-  readonly KeyConditionExpression: string | undefined;
-
-  readonly ExpressionAttributeNames?: PlaceholderNames;
-  readonly ExpressionAttributeValues?: PlaceholderValues;
-
-  readonly Limit?: number;
-  readonly IndexName?: string;
-  readonly ProjectionExpression?: string;
-  readonly ExclusiveStartKey?: ExclusiveStartKey;
-  readonly ScanIndexForward?: false;
-}
-
-export interface PutInput<T extends object = AnyRecord> {
-  readonly TableName: string;
-  readonly Item: T & {
-    readonly createdAt?: string;
-    readonly updatedAt?: string;
+  readonly Item: ItemT & {
+    readonly createdAt?: string | undefined;
+    readonly updatedAt?: string | undefined;
   };
 
-  readonly ExpressionAttributeNames?: PlaceholderNames;
-  readonly ExpressionAttributeValues?: PlaceholderValues;
-  readonly ConditionExpression?: string;
+  readonly ExpressionAttributeNames?: PlaceholderNames | undefined;
+  readonly ExpressionAttributeValues?: PlaceholderValues | undefined;
+  readonly ConditionExpression?: string | undefined;
+  readonly returnValues?: PutReturnValue;
 }
 
-export interface SetUpdateExpression {
-  readonly expression: string;
-  readonly names: PlaceholderNames;
-  readonly values: PlaceholderValues;
+// Update
+export interface UpdateConfig<
+  SetAttributesT extends object = UnknownRecord,
+  KeysT extends Keys = SingleTableKeys,
+> {
+  readonly keys: KeysT;
+  readonly setAttributes?: SetAttributesT | undefined;
+  readonly removeAttributes?: readonly string[] | undefined;
+  readonly upsert?: boolean | undefined;
+  readonly conditions?: MaybeConditions | undefined;
+  readonly timestamp?: boolean | undefined;
+  readonly returnValues?: ReturnValue | undefined;
 }
 
 export interface UpdateInput<K extends Keys = SingleTableKeys> {
@@ -157,7 +95,84 @@ export interface UpdateInput<K extends Keys = SingleTableKeys> {
   readonly Key: K;
   readonly UpdateExpression: string;
 
-  readonly ConditionExpression?: string;
-  readonly ExpressionAttributeNames?: PlaceholderNames;
-  readonly ExpressionAttributeValues?: PlaceholderValues;
+  readonly ConditionExpression?: string | undefined;
+  readonly ExpressionAttributeNames?: PlaceholderNames | undefined;
+  readonly ExpressionAttributeValues?: PlaceholderValues | undefined;
+  readonly ReturnValues?: ReturnValue | undefined;
+}
+
+// Query
+export interface QueryConfig {
+  readonly indexName?: string | undefined;
+  readonly keyConditions?: MaybeConditions | undefined;
+  readonly projections?: string[] | undefined;
+  readonly limit?: number | undefined;
+  readonly exclusiveStartKey?: AttributeValueRecord | undefined;
+  readonly descending?: boolean | undefined;
+}
+
+export interface QueryInput {
+  readonly TableName: string;
+  readonly KeyConditionExpression: string | undefined;
+
+  readonly ExpressionAttributeNames?: PlaceholderNames | undefined;
+  readonly ExpressionAttributeValues?: PlaceholderValues | undefined;
+
+  readonly Limit?: number | undefined;
+  readonly IndexName?: string | undefined;
+  readonly ProjectionExpression?: string | undefined;
+  readonly ExclusiveStartKey?: AttributeValueRecord | undefined;
+  readonly ScanIndexForward?: false | undefined;
+}
+
+//  Delete
+export interface DeleteConfig<KeysT extends Keys = SingleTableKeys> {
+  readonly keys: KeysT;
+  readonly conditions?: MaybeConditions | undefined;
+}
+
+export interface DeleteInput<KeysT extends Keys = SingleTableKeys> {
+  readonly TableName: string;
+  readonly Key: KeysT;
+  readonly ExpressionAttributeNames: PlaceholderNames;
+  readonly ExpressionAttributeValues: PlaceholderValues;
+  readonly ConditionExpression?: string | undefined;
+}
+
+// TransactWrite
+export interface TransactWriteConfig<
+  PutItemT extends object = UnknownRecord,
+  SetAttributesT extends object = UnknownRecord,
+  UpdateKeysT extends Keys = SingleTableKeys,
+  DeleteKeysT extends Keys = SingleTableKeys,
+> {
+  readonly put?: PutConfig<PutItemT>[] | undefined;
+  readonly update?: UpdateConfig<SetAttributesT, UpdateKeysT>[] | undefined;
+  readonly delete?: DeleteConfig<DeleteKeysT>[] | undefined;
+}
+
+export interface BatchWriteConfig {
+  readonly put?: UnknownRecord[] | undefined;
+  readonly delete?: UnknownRecord[] | undefined;
+}
+
+export type BatchWriteInput = Omit<BatchWriteCommandInput, 'RequestItems'> & {
+  RequestItems: StringKeyRecord<
+    (
+      | { PutRequest: { Item: StringKeyRecord<NativeAttributeValue> } }
+      | { DeleteRequest: { Key: StringKeyRecord<NativeAttributeValue> } }
+    )[]
+  >;
+};
+
+export interface ParsedCondition {
+  readonly expression?: string | undefined;
+  readonly names: PlaceholderNames;
+  readonly values: PlaceholderValues;
+}
+
+export interface SetUpdateExpression {
+  readonly expression: string;
+  readonly names: PlaceholderNames;
+  readonly values: PlaceholderValues;
 }
