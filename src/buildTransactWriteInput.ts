@@ -3,15 +3,15 @@ import { buildPutInput } from './buildPutInput';
 import { buildUpdateInput } from './buildUpdateInput';
 import { buildDeleteInput } from './buildDeleteInput';
 import type {
-  AnyRecord,
   Keys,
   SingleTableKeys,
   TransactWriteConfig,
+  UnknownRecord,
 } from './types';
 
 export function buildTransactWriteInput<
-  PT extends AnyRecord = AnyRecord,
-  UT extends AnyRecord = AnyRecord,
+  PT extends object = UnknownRecord,
+  UT extends object = UnknownRecord,
   UK extends Keys = SingleTableKeys,
   DK extends Keys = SingleTableKeys,
 >({

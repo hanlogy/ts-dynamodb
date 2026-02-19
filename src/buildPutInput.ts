@@ -1,15 +1,15 @@
 import { isEmpty } from '@hanlogy/ts-lib';
 import { buildConditionExpression } from './buildConditionExpression';
-import type { Condition, PutConfig, PutInput, AnyRecord } from './types';
+import type { Condition, PutConfig, PutInput, UnknownRecord } from './types';
 
-export function buildPutInput<T extends AnyRecord = AnyRecord>({
+export function buildPutInput<T extends object = UnknownRecord>({
   tableName,
   keyNames,
   attributes,
   conditions,
   timestamp,
   preventOverwrite,
-}: PutConfig<T> & { tableName: string }): PutInput {
+}: PutConfig<T> & { tableName: string }): PutInput<T> {
   const resolvedConditions: Condition[] = [];
 
   if (preventOverwrite !== false) {

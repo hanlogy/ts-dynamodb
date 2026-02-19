@@ -12,10 +12,15 @@ import {
   type PutCommandOutput,
   type DeleteCommandOutput,
   type TransactWriteCommandOutput,
+  GetCommandOutput,
+  UpdateCommandOutput,
+  QueryCommandOutput,
+  BatchGetCommandOutput,
+  BatchWriteCommandOutput,
 } from '@aws-sdk/lib-dynamodb';
 import {
+  ScanCommandOutput,
   TransactionCanceledException,
-  type ReturnValue,
 } from '@aws-sdk/client-dynamodb';
 import { createClientFromEnv } from './createClientFromEnv';
 import { buildUpdateInput } from './buildUpdateInput';
@@ -24,7 +29,6 @@ import { buildPutInput } from './buildPutInput';
 import { buildDeleteInput } from './buildDeleteInput';
 import { buildTransactWriteInput } from './buildTransactWriteInput';
 import type {
-  AnyRecord,
   BatchWriteConfig,
   DeleteConfig,
   Keys,
@@ -34,6 +38,8 @@ import type {
   TransactWriteConfig,
   UpdateConfig,
   BatchWriteInput,
+  UnknownRecord,
+  AttributeValueRecord,
 } from './types';
 import { buildBatchWriteInput } from './buildBatchWriteInput';
 
@@ -44,7 +50,7 @@ export interface DynamoDBHelperProps {
 
 export class DynamoDBHelper {
   constructor({ client, tableName }: DynamoDBHelperProps = {}) {
-    const resolvedTableName = tableName ?? process.env['DYNAMODB_TABLE_NAME'];
+    const resolvedTableName = tableName ?? process.env.DYNAMODB_TABLE_NAME;
     if (!resolvedTableName) {
       throw new Error('tableName is missing');
     }
@@ -56,95 +62,55 @@ export class DynamoDBHelper {
   private readonly tableName: string;
   emptyKey = 'META';
 
-  async scan(): Promise<Readonly<{ items: readonly AnyRecord[] }>> {
-    const { Items: items } = await this.client.send(
+  async scan(): Promise<ScanCommandOutput> {
+    return await this.client.send(
       new ScanCommand({
         TableName: this.tableName,
       }),
     );
-    return { items: items ?? [] };
   }
 
-  async get<T extends AnyRecord = AnyRecord, K extends Keys = SingleTableKeys>({
+  async test(): Promise<void> {
+    //
+  }
+
+  async get({
     keys,
   }: {
-    keys: K;
-  }): Promise<Readonly<{ item: Readonly<T> | undefined }>> {
-    const { Item: item } = await this.client.send(
+    keys: AttributeValueRecord;
+  }): Promise<GetCommandOutput> {
+    return await this.client.send(
       new GetCommand({ TableName: this.tableName, Key: keys }),
     );
-
-    return { item: item ? (item as T) : undefined };
   }
 
-  update<
-    R extends AnyRecord = AnyRecord,
-    T extends AnyRecord = AnyRecord,
-    K extends Keys = SingleTableKeys,
-  >(
-    config: UpdateConfig<T, K> & { returnValues: FullReturnValue },
-  ): Promise<Readonly<{ attributes: R }>>;
-
-  update<
-    R extends AnyRecord = AnyRecord,
-    T extends AnyRecord = AnyRecord,
-    K extends Keys = SingleTableKeys,
-  >(
-    config: UpdateConfig<T, K> & { returnValues?: PartialReturnValue },
-  ): Promise<Readonly<{ attributes: Partial<R> }>>;
-
   async update<
-    R extends AnyRecord = AnyRecord,
-    T extends AnyRecord = AnyRecord,
+    T extends object = UnknownRecord,
     K extends Keys = SingleTableKeys,
-  >(
-    config: UpdateConfig<T, K> & {
-      returnValues?: ReturnValue;
-    },
-  ): Promise<Readonly<{ attributes: Partial<R> }>> {
+  >(config: UpdateConfig<T, K>): Promise<UpdateCommandOutput> {
     const commandInput = buildUpdateInput<T, K>({
       tableName: this.tableName,
       ...config,
     });
 
-    if (config.returnValues) {
-      Object.assign(commandInput, {
-        ReturnValues: config.returnValues,
-      });
-    }
-    const { Attributes = {} } = await this.client.send(
-      new UpdateCommand(commandInput),
-    );
-
-    return {
-      attributes: Attributes as Partial<R>,
-    };
+    return await this.client.send(new UpdateCommand(commandInput));
   }
 
-  async query<T extends AnyRecord = AnyRecord>(
-    config: QueryConfig,
-  ): Promise<
-    Readonly<{
-      items: readonly T[];
-      lastEvaluatedKey?: AnyRecord;
-    }>
-  > {
+  async query(config: QueryConfig): Promise<QueryCommandOutput> {
     const commandInput = buildQueryInput({
       tableName: this.tableName,
       ...config,
     });
 
-    const { Items: items = [], LastEvaluatedKey: lastEvaluatedKey } =
-      await this.client.send(new QueryCommand(commandInput));
-
-    return { items: items as T[], lastEvaluatedKey };
+    return await this.client.send(new QueryCommand(commandInput));
   }
 
-  async create<T extends AnyRecord = AnyRecord>(
+  async create<T extends object = UnknownRecord>(
     config: PutConfig<T>,
   ): Promise<PutCommandOutput> {
-    return this.client.send(
+    return await this.client.send(
       new PutCommand(
+        // TODO: Never call these helpers in the method, always use it outisde, we need to decuple these!!!
         buildPutInput<T>({ tableName: this.tableName, ...config }),
       ),
     );
@@ -161,8 +127,8 @@ export class DynamoDBHelper {
   }
 
   async transactWrite<
-    PT extends AnyRecord = AnyRecord,
-    UT extends AnyRecord = AnyRecord,
+    PT extends object = UnknownRecord,
+    UT extends object = UnknownRecord,
     UK extends Keys = SingleTableKeys,
     DK extends Keys = SingleTableKeys,
   >(
@@ -188,20 +154,16 @@ export class DynamoDBHelper {
       }
     }
   }
-  async batchGet<T, K extends Keys = SingleTableKeys>({
+  async batchGet({
     keys,
   }: {
-    keys: readonly K[];
-  }): Promise<{ items: readonly T[] }> {
-    const data = await this.client.send(
+    keys: readonly Keys[];
+  }): Promise<BatchGetCommandOutput> {
+    return await this.client.send(
       new BatchGetCommand({
         RequestItems: { [this.tableName]: { Keys: [...keys] } },
       }),
     );
-
-    const items = data.Responses?.[this.tableName] ?? [];
-
-    return { items: items as readonly T[] };
   }
 
   async batchWrite(
@@ -210,7 +172,7 @@ export class DynamoDBHelper {
     const MAX_RETRIES = 5;
     let retries = 0;
 
-    let unprocessed: Record<string, any[]> = buildBatchWriteInput({
+    let unprocessed = buildBatchWriteInput({
       tableName: this.tableName,
       ...config,
     }).RequestItems;
@@ -219,7 +181,8 @@ export class DynamoDBHelper {
       const response = await this.client.send(
         new BatchWriteCommand({ RequestItems: unprocessed }),
       );
-      unprocessed = response.UnprocessedItems || {};
+      unprocessed = this.normalizeUnprocessedItems(response.UnprocessedItems);
+
       retries++;
       if (Object.keys(unprocessed).length > 0) {
         // Small delay between retries to avoid throttling
@@ -237,10 +200,39 @@ export class DynamoDBHelper {
     return unprocessed;
   }
 
-  normalizeDate(input: string): string;
-  normalizeDate(input?: string): string | undefined;
-  normalizeDate(input?: string): string | undefined {
-    return input ? new Date(input).toISOString() : undefined;
+  normalizeUnprocessedItems(
+    input: BatchWriteCommandOutput['UnprocessedItems'],
+  ): BatchWriteInput['RequestItems'] {
+    const result: BatchWriteInput['RequestItems'] = {};
+
+    if (!input) {
+      return result;
+    }
+
+    for (const [tableName, requests] of Object.entries(input)) {
+      if (requests.length === 0) {
+        continue;
+      }
+
+      const normalized: BatchWriteInput['RequestItems'][string] = [];
+
+      for (const req of requests) {
+        if (req.PutRequest?.Item) {
+          normalized.push({ PutRequest: { Item: req.PutRequest.Item } });
+          continue;
+        }
+
+        if (req.DeleteRequest?.Key) {
+          normalized.push({ DeleteRequest: { Key: req.DeleteRequest.Key } });
+        }
+      }
+
+      if (normalized.length > 0) {
+        result[tableName] = normalized;
+      }
+    }
+
+    return result;
   }
 
   buildKey(...args: (string | number)[]): string;
@@ -268,6 +260,3 @@ export class DynamoDBHelper {
     return `${prefix}${shard}`;
   }
 }
-
-type FullReturnValue = 'ALL_NEW' | 'ALL_OLD';
-type PartialReturnValue = Exclude<ReturnValue, FullReturnValue>;
