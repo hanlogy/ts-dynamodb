@@ -10,9 +10,10 @@ export { buildUpdateInput } from './buildUpdateInput';
 export { createClientFromEnv } from './createClientFromEnv';
 export type {
   SingleTableKeys,
-  AnyRecord,
-  TypedRecord,
-  AttributeValues,
+  StringKeyRecord,
+  UnknownRecord,
+  AttributeValue,
   PutConfig,
   UpdateConfig,
+  AttributeValueRecord,
 } from './types';

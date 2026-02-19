@@ -3,10 +3,11 @@ import type {
   PlaceholderNames,
   PlaceholderValues,
   SetUpdateExpression,
+  UnknownRecord,
 } from './types';
 
 export function buildSetUpdateExpression(
-  attributes: Record<string, unknown>,
+  attributes: UnknownRecord,
 ): SetUpdateExpression {
   if (isEmpty(attributes)) {
     throw new Error('parseSetAttributes: attributes cannot be empty');
