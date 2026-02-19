@@ -1,14 +1,17 @@
-import { NativeAttributeValue } from '@aws-sdk/lib-dynamodb';
+import { ReturnValue } from '@aws-sdk/client-dynamodb';
+import {
+  BatchWriteCommandInput,
+  NativeAttributeValue,
+} from '@aws-sdk/lib-dynamodb';
 
-export type TypedRecord<T> = Record<string, T>;
-export type AnyRecord = TypedRecord<any>;
-
+export type StringKeyRecord<T> = Record<string, T>;
+export type UnknownRecord = StringKeyRecord<unknown>;
 export type PlaceholderNames = Record<`#${string}`, string>;
 export type PlaceholderValues = Record<`:${string}`, NativeAttributeValue>;
-export type AttributeValues = AnyRecord;
-export type ExclusiveStartKey = AnyRecord;
-export type Keys = TypedRecord<string | number>;
-export type SingleTableKeys = { pk: string; sk: string };
+export type AttributeValue = NativeAttributeValue;
+export type AttributeValueRecord = StringKeyRecord<NativeAttributeValue>;
+export type Keys = StringKeyRecord<string | number>;
+export type SingleTableKeys = Record<'pk' | 'sk', string>;
 
 // Types for condition
 type LogicalOperator = 'AND' | 'OR';
@@ -54,7 +57,7 @@ export interface DeleteConfig<K extends Keys = SingleTableKeys> {
   readonly conditions?: MaybeConditions;
 }
 
-export interface PutConfig<T extends AnyRecord = AnyRecord> {
+export interface PutConfig<T extends object = UnknownRecord> {
   readonly attributes: T;
   readonly keyNames: Extract<keyof T, string>[];
   readonly conditions?: MaybeConditions;
@@ -67,13 +70,13 @@ export interface QueryConfig {
   readonly keyConditions?: MaybeConditions;
   readonly projections?: string[];
   readonly limit?: number;
-  readonly exclusiveStartKey?: ExclusiveStartKey;
+  readonly exclusiveStartKey?: AttributeValueRecord;
   readonly descending?: boolean;
 }
 
 export interface TransactWriteConfig<
-  PT extends AnyRecord = AnyRecord,
-  UT extends AnyRecord = AnyRecord,
+  PT extends object = UnknownRecord,
+  UT extends object = UnknownRecord,
   UK extends Keys = SingleTableKeys,
   DK extends Keys = SingleTableKeys,
 > {
@@ -83,12 +86,12 @@ export interface TransactWriteConfig<
 }
 
 export interface BatchWriteConfig {
-  readonly put?: AnyRecord[];
-  readonly delete?: AnyRecord[];
+  readonly put?: UnknownRecord[];
+  readonly delete?: UnknownRecord[];
 }
 
 export interface UpdateConfig<
-  T extends AnyRecord = AnyRecord,
+  T extends object = UnknownRecord,
   K extends Keys = SingleTableKeys,
 > {
   readonly keys: K;
@@ -97,16 +100,17 @@ export interface UpdateConfig<
   readonly upsert?: boolean;
   readonly conditions?: MaybeConditions;
   readonly timestamp?: boolean;
+  readonly returnValues?: ReturnValue;
 }
 
-export interface BatchWriteInput {
-  readonly RequestItems: TypedRecord<
+export type BatchWriteInput = Omit<BatchWriteCommandInput, 'RequestItems'> & {
+  RequestItems: StringKeyRecord<
     (
-      | { PutRequest: { Item: AnyRecord } }
-      | { DeleteRequest: { Key: AnyRecord } }
+      | { PutRequest: { Item: StringKeyRecord<NativeAttributeValue> } }
+      | { DeleteRequest: { Key: StringKeyRecord<NativeAttributeValue> } }
     )[]
   >;
-}
+};
 
 export interface ParsedCondition {
   readonly expression?: string | undefined;
@@ -132,11 +136,11 @@ export interface QueryInput {
   readonly Limit?: number;
   readonly IndexName?: string;
   readonly ProjectionExpression?: string;
-  readonly ExclusiveStartKey?: ExclusiveStartKey;
+  readonly ExclusiveStartKey?: AttributeValueRecord;
   readonly ScanIndexForward?: false;
 }
 
-export interface PutInput<T extends object = AnyRecord> {
+export interface PutInput<T extends object = UnknownRecord> {
   readonly TableName: string;
   readonly Item: T & {
     readonly createdAt?: string;
@@ -162,4 +166,5 @@ export interface UpdateInput<K extends Keys = SingleTableKeys> {
   readonly ConditionExpression?: string;
   readonly ExpressionAttributeNames?: PlaceholderNames;
   readonly ExpressionAttributeValues?: PlaceholderValues;
+  readonly ReturnValues?: ReturnValue;
 }

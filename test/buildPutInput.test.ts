@@ -1,5 +1,5 @@
 import { buildPutInput } from '@/buildPutInput';
-import type { Condition, UnknownRecord } from '@/types';
+import type { Condition } from '@/types';
 
 const tableName = 'MyTable';
 const now = '2026-01-01T00:00:00.000Z';
@@ -15,7 +15,7 @@ describe('buildPutInput', () => {
   });
 
   test('default', () => {
-    const attributes: UnknownRecord = {
+    const attributes = {
       pk: 'P#1',
       sk: 'S#1',
       status: 'ACTIVE',
@@ -49,7 +49,7 @@ describe('buildPutInput', () => {
   });
 
   test('preventOverwrite is false', () => {
-    const attributes: UnknownRecord = { pk: 'P#1', sk: 'S#1' };
+    const attributes = { pk: 'P#1', sk: 'S#1' };
 
     const result = buildPutInput({
       tableName,
@@ -70,7 +70,7 @@ describe('buildPutInput', () => {
   });
 
   test('timestamp is false', () => {
-    const attributes: UnknownRecord = { pk: 'P#1', sk: 'S#1' };
+    const attributes = { pk: 'P#1', sk: 'S#1' };
 
     const result = buildPutInput({
       tableName,
@@ -95,7 +95,7 @@ describe('buildPutInput', () => {
   });
 
   test('with conditions', () => {
-    const attributes: UnknownRecord = { pk: 'P#1', sk: 'S#1' };
+    const attributes = { pk: 'P#1', sk: 'S#1' };
     const conditions: Condition = {
       attribute: 'status',
       operator: '=',
