@@ -56,11 +56,11 @@ export type MaybeConditions = Condition | Condition[] | null;
 export type PutReturnValue = Extract<ReturnValue, 'ALL_OLD' | 'NONE'>;
 export interface PutConfig<ItemT extends object = UnknownRecord> {
   readonly item: ItemT;
-  readonly keyNames: Extract<keyof ItemT, string>[];
+  readonly keyNames: (keyof ItemT & string)[];
   readonly conditions?: MaybeConditions | undefined;
   readonly timestamp?: boolean | undefined;
   readonly preventOverwrite?: boolean | undefined;
-  readonly returnValues?: PutReturnValue;
+  readonly returnValues?: PutReturnValue | undefined;
 }
 
 export interface PutInput<ItemT extends object = UnknownRecord> {
@@ -73,7 +73,7 @@ export interface PutInput<ItemT extends object = UnknownRecord> {
   readonly ExpressionAttributeNames?: PlaceholderNames | undefined;
   readonly ExpressionAttributeValues?: PlaceholderValues | undefined;
   readonly ConditionExpression?: string | undefined;
-  readonly returnValues?: PutReturnValue;
+  readonly returnValues?: PutReturnValue | undefined;
 }
 
 // Update
