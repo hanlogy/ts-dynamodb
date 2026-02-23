@@ -32,7 +32,22 @@ export function buildUpdateInput<
   const placeholderNames: PlaceholderNames = {};
   const placeholderValues: PlaceholderValues = {};
 
-  const setAttributesResolved: UnknownRecord = { ...setAttributes };
+  const setAttributesResolved: UnknownRecord = !removeAttributes?.length
+    ? { ...setAttributes }
+    : ((): UnknownRecord => {
+        const filtered: UnknownRecord = {};
+        const removeSet = new Set(removeAttributes);
+        const source: UnknownRecord = { ...setAttributes };
+
+        for (const [key, value] of Object.entries(source)) {
+          if (removeSet.has(key)) {
+            continue;
+          }
+          filtered[key] = value;
+        }
+
+        return filtered;
+      })();
 
   if (timestamp !== false && setAttributesResolved.updatedAt === undefined) {
     setAttributesResolved.updatedAt = new Date().toISOString();
