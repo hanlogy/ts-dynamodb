@@ -185,6 +185,42 @@ describe('buildUpdateInput', () => {
     });
   });
 
+  test('filter setAttributes when also in removeAttributes', () => {
+    buildSetUpdateExpressionMock.mockReturnValueOnce({
+      expression: 'SET #age = :age, #updatedAt = :updatedAt',
+      names: {
+        '#age': 'age',
+        '#updatedAt': 'updatedAt',
+      },
+      values: {
+        ':age': 30,
+        ':updatedAt': now,
+      },
+    });
+
+    buildConditionExpressionMock.mockReturnValueOnce({
+      expression: 'attribute_exists(#testPk) AND attribute_exists(#testSk)',
+      names: {
+        '#testPk': 'testPk',
+        '#testSk': 'testSk',
+      },
+      values: {},
+    });
+
+    buildUpdateInput({
+      tableName,
+      keys: { testPk, testSk },
+      setAttributes: { age: 30, name: 'Alice' },
+      removeAttributes: ['name'],
+      conditions: [],
+    });
+
+    expect(buildSetUpdateExpressionMock).toHaveBeenCalledWith({
+      age: 30,
+      updatedAt: now,
+    });
+  });
+
   test('when upsert is true', () => {
     buildSetUpdateExpressionMock.mockReturnValueOnce({
       expression: 'SET #age = :age, #name = :name, #updatedAt = :updatedAt',
