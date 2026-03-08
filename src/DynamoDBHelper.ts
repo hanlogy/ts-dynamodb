@@ -1,7 +1,4 @@
-import {
-  ReturnValue,
-  TransactionCanceledException,
-} from '@aws-sdk/client-dynamodb';
+import { TransactionCanceledException } from '@aws-sdk/client-dynamodb';
 import {
   type DynamoDBDocumentClient,
   GetCommand,
@@ -95,14 +92,6 @@ export class DynamoDBHelper {
   }
 
   // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-lib-dynamodb/Class/PutCommand/
-  put<ItemT extends object = UnknownRecord>(
-    config: PutConfig<ItemT> & { returnValues: 'ALL_OLD' },
-  ): Promise<Readonly<{ attributes: AttributeValueRecord }>>;
-
-  put<ItemT extends object = UnknownRecord>(
-    config: PutConfig<ItemT> & { returnValues?: 'NONE' | undefined },
-  ): Promise<Readonly<{ attributes: undefined }>>;
-
   async put<ItemT extends object = UnknownRecord>(
     config: PutConfig<ItemT>,
   ): Promise<{
@@ -118,24 +107,6 @@ export class DynamoDBHelper {
   }
 
   // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-lib-dynamodb/Class/UpdateCommand/
-  update<
-    SetAttributesT extends object = UnknownRecord,
-    KeysT extends Keys = SingleTableKeys,
-  >(
-    config: UpdateConfig<SetAttributesT, KeysT> & {
-      returnValues: Exclude<ReturnValue, 'NONE'>;
-    },
-  ): Promise<Readonly<{ attributes: AttributeValueRecord }>>;
-
-  update<
-    SetAttributesT extends object = UnknownRecord,
-    KeysT extends Keys = SingleTableKeys,
-  >(
-    config: UpdateConfig<SetAttributesT, KeysT> & {
-      returnValues?: 'NONE' | undefined;
-    },
-  ): Promise<Readonly<{ attributes: undefined }>>;
-
   async update<
     SetAttributesT extends object = UnknownRecord,
     KeysT extends Keys = SingleTableKeys,
