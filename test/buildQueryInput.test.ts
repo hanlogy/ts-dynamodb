@@ -1,5 +1,5 @@
 import { buildQueryInput } from '@/buildQueryInput';
-import type { Condition, ExclusiveStartKey } from '@/types';
+import type { Condition } from '@/types';
 
 const tableName = 'MyTable';
 
@@ -78,7 +78,7 @@ describe('buildQueryInput', () => {
       value: 'P#1',
     };
 
-    const exclusiveStartKey: ExclusiveStartKey = { pk: 'P#0', sk: 'S#0' };
+    const exclusiveStartKey = { pk: 'P#0', sk: 'S#0' };
 
     const result = buildQueryInput({
       tableName,
