@@ -54,9 +54,12 @@ export type MaybeConditions = Condition | Condition[] | null;
 
 // Put
 export type PutReturnValue = Extract<ReturnValue, 'ALL_OLD' | 'NONE'>;
-export interface PutConfig<ItemT extends object = UnknownRecord> {
+export interface PutConfig<
+  ItemT extends object = UnknownRecord,
+  KeyNameT extends string = keyof ItemT & string,
+> {
   readonly item: ItemT;
-  readonly keyNames: (keyof ItemT & string)[];
+  readonly keyNames: readonly KeyNameT[];
   readonly conditions?: MaybeConditions | undefined;
   readonly timestamp?: boolean | undefined;
   readonly preventOverwrite?: boolean | undefined;
@@ -141,12 +144,11 @@ export interface DeleteInput<KeysT extends Keys = SingleTableKeys> {
 
 // TransactWrite
 export interface TransactWriteConfig<
-  PutItemT extends object = UnknownRecord,
   SetAttributesT extends object = UnknownRecord,
   UpdateKeysT extends Keys = SingleTableKeys,
   DeleteKeysT extends Keys = SingleTableKeys,
 > {
-  readonly put?: PutConfig<PutItemT>[] | undefined;
+  readonly put?: PutConfig<object, string>[] | undefined;
   readonly update?: UpdateConfig<SetAttributesT, UpdateKeysT>[] | undefined;
   readonly delete?: DeleteConfig<DeleteKeysT>[] | undefined;
 }

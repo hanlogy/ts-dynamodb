@@ -10,7 +10,6 @@ import type {
 } from './types';
 
 export function buildTransactWriteInput<
-  PutItemT extends object = UnknownRecord,
   SetAttributesT extends object = UnknownRecord,
   UpdateKeysT extends Keys = SingleTableKeys,
   DeleteKeysT extends Keys = SingleTableKeys,
@@ -19,13 +18,13 @@ export function buildTransactWriteInput<
   put: putItems = [],
   update: updateItems = [],
   delete: deleteItems = [],
-}: TransactWriteConfig<PutItemT, SetAttributesT, UpdateKeysT, DeleteKeysT> & {
+}: TransactWriteConfig<SetAttributesT, UpdateKeysT, DeleteKeysT> & {
   tableName: string;
 }): TransactWriteCommandInput {
   return {
     TransactItems: [
       ...putItems.map((e) => ({
-        Put: buildPutInput<PutItemT>({ tableName, ...e }),
+        Put: buildPutInput({ tableName, ...e }),
       })),
       ...updateItems.map((e) => ({
         Update: buildUpdateInput<SetAttributesT, UpdateKeysT>({

@@ -37,8 +37,8 @@ describe('buildTransactWriteInput', () => {
   });
 
   test('put', () => {
-    const putItem1: PutConfig = { attributes: { pk: 'P#1' }, keyNames: ['pk'] };
-    const putItem2: PutConfig = { attributes: { pk: 'P#2' }, keyNames: ['pk'] };
+    const putItem1: PutConfig = { item: { pk: 'P#1' }, keyNames: ['pk'] };
+    const putItem2: PutConfig = { item: { pk: 'P#2' }, keyNames: ['pk'] };
 
     const putInput1 = { TableName: tableName, Item: { pk: 'P#1' } };
     const putInput2 = { TableName: tableName, Item: { pk: 'P#2' } };
@@ -125,7 +125,7 @@ describe('buildTransactWriteInput', () => {
   });
 
   test('order', () => {
-    const putItem: PutConfig = { attributes: { pk: 'P#1' }, keyNames: ['pk'] };
+    const putItem: PutConfig = { item: { pk: 'P#1' }, keyNames: ['pk'] };
     const updateItem = {
       keys: { pk: 'P#1', sk: 'S#1' },
       setAttributes: { a: 1 },
