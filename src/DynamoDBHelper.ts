@@ -139,27 +139,16 @@ export class DynamoDBHelper {
   }
 
   async transactWrite<
-    PutItemT extends object = UnknownRecord,
     SetAttributesT extends object = UnknownRecord,
     UpdateKeysT extends Keys = SingleTableKeys,
     DeleteKeysT extends Keys = SingleTableKeys,
   >(
-    config: TransactWriteConfig<
-      PutItemT,
-      SetAttributesT,
-      UpdateKeysT,
-      DeleteKeysT
-    >,
+    config: TransactWriteConfig<SetAttributesT, UpdateKeysT, DeleteKeysT>,
   ): Promise<void> {
     try {
       await this.client.send(
         new TransactWriteCommand(
-          buildTransactWriteInput<
-            PutItemT,
-            SetAttributesT,
-            UpdateKeysT,
-            DeleteKeysT
-          >({
+          buildTransactWriteInput<SetAttributesT, UpdateKeysT, DeleteKeysT>({
             tableName: this.tableName,
             ...config,
           }),
