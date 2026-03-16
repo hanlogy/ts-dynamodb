@@ -32,6 +32,7 @@ import type {
   UnknownRecord,
   AttributeValueRecord,
 } from './types';
+import { asKey } from './helpers';
 
 export interface DynamoDBHelperProps {
   readonly client?: DynamoDBDocumentClient;
@@ -260,15 +261,8 @@ export class DynamoDBHelper {
     const hasBool = typeof last === 'boolean';
     const shouldHashEnd = hasBool ? last : false;
     const items = hasBool ? args.slice(0, -1) : args;
-    const key = (items as (string | number)[])
-      .map((e) =>
-        String(e)
-          .replace(/-/g, '')
-          .replace(/ /g, '')
-          .replace(/#+$/, '')
-          .toLowerCase(),
-      )
-      .join('#');
+
+    const key = items.map((e) => asKey(e).replace(/#+$/, '')).join('#');
 
     return shouldHashEnd ? key + '#' : key;
   }
