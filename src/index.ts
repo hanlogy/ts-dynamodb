@@ -15,5 +15,8 @@ export type {
   AttributeValue,
   PutConfig,
   UpdateConfig,
+  DeleteConfig,
   AttributeValueRecord,
 } from './types';
+
+export { asKey } from './helpers';
