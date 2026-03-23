@@ -173,7 +173,7 @@ export class DynamoDBHelper {
   async batchGet({
     keys,
   }: {
-    keys: AttributeValueRecord[];
+    keys: readonly AttributeValueRecord[];
   }): Promise<{ items: AttributeValueRecord[] }> {
     const data = await this.client.send(
       new BatchGetCommand({
